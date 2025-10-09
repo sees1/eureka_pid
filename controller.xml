@@ -1,0 +1,7 @@
+<class_libraries>
+  <library path="eureka_controller">
+    <class type="nav2_eureka_controller::Controller" base_class_type="nav2_core::Controller">
+      <description>Eureka PID controller for Nav2</description>
+    </class>
+  </library>
+</class_libraries>

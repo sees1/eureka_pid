@@ -1,0 +1,70 @@
+#include <vector>
+#include <utility>
+#include <string>
+#include <memory>
+
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "tf2_ros/buffer.h"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "nav_msgs/msg/path.hpp"
+#include "builtin_interfaces/msg/time.hpp"
+#include "nav2_costmap_2d/costmap_2d_ros.hpp"
+#include "nav2_util/geometry_utils.hpp"
+
+#include "nav2_mppi_controller/tools/parameters_handler.hpp"
+
+using PathIterator = std::vector<geometry_msgs::msg::PoseStamped>::iterator;
+using PathRange = std::pair<PathIterator, PathIterator>;
+
+class PathHandler
+{
+public:
+  PathHandler() = default;
+
+  ~PathHandler() = default;
+
+  void initialize(
+    rclcpp_lifecycle::LifecycleNode::WeakPtr parent, const std::string & name,
+    std::shared_ptr<nav2_costmap_2d::Costmap2DROS>,
+    std::shared_ptr<tf2_ros::Buffer>, mppi::ParametersHandler *);
+
+  void setPath(const nav_msgs::msg::Path & plan);
+
+  nav_msgs::msg::Path & getPath();
+
+  nav_msgs::msg::Path transformPath(const geometry_msgs::msg::PoseStamped & robot_pose);
+
+protected:
+  bool transformPose(
+    const std::string & frame, const geometry_msgs::msg::PoseStamped & in_pose,
+    geometry_msgs::msg::PoseStamped & out_pose) const;
+
+  double getMaxCostmapDist();
+
+  geometry_msgs::msg::PoseStamped
+  transformToGlobalPlanFrame(const geometry_msgs::msg::PoseStamped & pose);
+
+  std::pair<nav_msgs::msg::Path, PathIterator> getGlobalPlanConsideringBoundsInCostmapFrame(
+    const geometry_msgs::msg::PoseStamped & global_pose);
+
+  void prunePlan(nav_msgs::msg::Path & plan, const PathIterator end);
+
+  bool isWithinInversionTolerances(const geometry_msgs::msg::PoseStamped & robot_pose);
+
+  std::string name_;
+  std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_;
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  mppi::ParametersHandler * parameters_handler_;
+
+  nav_msgs::msg::Path global_plan_;
+  nav_msgs::msg::Path global_plan_up_to_inversion_;
+  rclcpp::Logger logger_{rclcpp::get_logger("EurekaController")};
+
+  double max_robot_pose_search_dist_{0};
+  double prune_distance_{0};
+  double transform_tolerance_{0};
+  float inversion_xy_tolerance_{0.2};
+  float inversion_yaw_tolerance{0.4};
+  bool enforce_path_inversion_{false};
+  unsigned int inversion_locale_{0u};
+};
