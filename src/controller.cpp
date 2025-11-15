@@ -17,8 +17,7 @@ void Controller::configure(
   parameters_handler_ = std::make_unique<mppi::ParametersHandler>(parent);
 
   auto node = parent_.lock();
-  clock_ = node->get_clock();
-  last_time_called_ = clock_->now();
+  last_time_called_ = std::chrono::steady_clock::now();
   auto getParam = parameters_handler_->getParamGetter(name_);
   
   pid_.initialize(parent_, name_, costmap_ros_, parameters_handler_.get());
@@ -55,8 +54,8 @@ geometry_msgs::msg::TwistStamped Controller::computeVelocityCommands(
   const geometry_msgs::msg::Twist & robot_speed,
   nav2_core::GoalChecker * goal_checker)
 {  
-  rclcpp::Duration dt = clock_->now() - last_time_called_;
-  last_time_called_ = clock_->now();
+  double dt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_time_called_).count();
+  last_time_called_ = std::chrono::steady_clock::now();
 
   std::lock_guard<std::mutex> param_lock(*parameters_handler_->getLock());
   nav_msgs::msg::Path transformed_plan = path_handler_.transformPath(robot_pose);
@@ -68,12 +67,12 @@ geometry_msgs::msg::TwistStamped Controller::computeVelocityCommands(
 
   if (goal_checker->isGoalReached(robot_pose.pose, path_handler_.getPath().poses.back().pose, robot_speed))
   {
-    cmd.twist.linear.x = 0;
-    cmd.twist.angular.z = 0;
+    cmd.twist.linear.x = 0.0;
+    cmd.twist.angular.z = 0.0;
   }
   else
   {
-    cmd = pid_.evalControl(robot_pose, transformed_plan, dt);
+    cmd = pid_.evalControl(robot_pose, transformed_plan, dt_ms);
   }
 
   return cmd;

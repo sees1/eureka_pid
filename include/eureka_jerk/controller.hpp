@@ -2,6 +2,8 @@
 #ifndef NAV2_MPPI_CONTROLLER__CONTROLLER_HPP_
 #define NAV2_MPPI_CONTROLLER__CONTROLLER_HPP_
 
+#include <chrono>
+
 #include "eureka_jerk/pid.hpp"
 #include "eureka_jerk/path_handler.hpp"
 
@@ -38,7 +40,6 @@ public:
 protected:
   std::string name_;
   rclcpp_lifecycle::LifecycleNode::WeakPtr parent_;
-  rclcpp::Clock::SharedPtr clock_;
   rclcpp::Logger logger_{rclcpp::get_logger("EurekaController")};
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -47,7 +48,7 @@ protected:
   PID pid_;
   PathHandler path_handler_;
 
-  rclcpp::Time last_time_called_;
+  std::chrono::time_point<std::chrono::steady_clock> last_time_called_;
 };
 
 } // namespace nav2_eureka_controller

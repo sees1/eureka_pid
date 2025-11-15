@@ -10,18 +10,17 @@ include_directories(
 set(dependencies_pkgs
   rclcpp
   nav2_common
-  pluginlib
-  tf2
-  geometry_msgs
-  visualization_msgs
-  nav_msgs
   nav2_core
   nav2_costmap_2d
   nav2_util
   nav2_mppi_controller
+  nav_msgs
+  geometry_msgs
   tf2_geometry_msgs
+  tf2
   tf2_eigen
   tf2_ros
+  pluginlib
 )
 
 foreach(pkg IN LISTS dependencies_pkgs)

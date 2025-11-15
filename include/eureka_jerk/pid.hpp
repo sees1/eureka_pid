@@ -42,7 +42,7 @@ public:
 
   geometry_msgs::msg::TwistStamped evalControl(const geometry_msgs::msg::PoseStamped & robot_pose,
                                                const nav_msgs::msg::Path & transformed_plan,
-                                               rclcpp::Duration dt_dur);
+                                               double dt_ms);
 
   double getMaxCostmapDist();
 

@@ -111,7 +111,7 @@ Segment PID::computeSegment(const geometry_msgs::msg::PoseStamped& robot_pose, c
 
 geometry_msgs::msg::TwistStamped PID::evalControl(const geometry_msgs::msg::PoseStamped & robot_pose,
                                                   const nav_msgs::msg::Path & transformed_plan,
-                                                  rclcpp::Duration dt_dur)
+                                                  double dt_ms)
 {
   Segment segment = computeSegment(robot_pose, transformed_plan);
 
@@ -119,7 +119,7 @@ geometry_msgs::msg::TwistStamped PID::evalControl(const geometry_msgs::msg::Pose
 
   if (!segment.bad_segment_)
   {
-    double dt = dt_dur.seconds();
+    double dt_s = dt_ms / 1000.0;
 
     double robot_yaw = computeYaw(robot_pose);
 
@@ -145,8 +145,8 @@ geometry_msgs::msg::TwistStamped PID::evalControl(const geometry_msgs::msg::Pose
     log << "e_theta = " << e_theta << "\n";
 #endif // DEBUG
 
-    double de_y = (e_y - e_y_prev) / dt;
-    integral_e_y += e_y * dt;
+    double de_y = (e_y - e_y_prev) / dt_s;
+    integral_e_y += e_y * dt_s;
     double omega = k_p * (-1.0) * e_y + k_d * de_y + k_i * integral_e_y;
 
     double v = v_max_ * std::cos(e_theta);
