@@ -28,12 +28,27 @@ void PID::initialize(rclcpp_lifecycle::LifecycleNode::WeakPtr parent,
   getParam(k_d, "k_d", 0.0);
   getParam(k_i, "k_i", 0.0);
 
+#ifdef DEBUG
   std::cout << "segment_size = " << segment_size_ << std::endl;
   std::cout << "v_max = " << v_max_ << std::endl;
   std::cout << "carrot_length = " << carrot_length_ << std::endl;
   std::cout << "k_p = " << k_p << std::endl;
   std::cout << "k_d = " << k_d << std::endl;
   std::cout << "k_i = " << k_i << std::endl;
+
+  log.open("/home/sees/CommLineProg/work/catkin2_ws/work_log/pid_log.txt");
+
+  if (!log.is_open()) {
+    std::cerr << "Can't open log!\n";
+  }
+#endif // DEBUG
+}
+
+void PID::deactivate()
+{
+#ifdef DEBUG
+  log.close();
+#endif // DEBUG
 }
 
 Segment PID::computeSegment(const geometry_msgs::msg::PoseStamped& robot_pose, const nav_msgs::msg::Path& plan)
@@ -78,8 +93,12 @@ Segment PID::computeSegment(const geometry_msgs::msg::PoseStamped& robot_pose, c
     segment_yaw = computeYaw(*start_pose, *next_pose);
     robot_yaw = computeYaw(robot_pose);
 
+#ifdef DEBUG
     std::cout << "SEGMENT_YAW = " << segment_yaw << std::endl;
     std::cout << "ROBOT_YAW = " << robot_yaw << std::endl;
+    log << "SEGMENT_YAW = " << segment_yaw << "\n";
+    log << "ROBOT_YAW = " << robot_yaw << "\n";
+#endif // DEBUG
 
     double local_segment_yaw = std::acos(std::cos(robot_yaw) * std::cos(segment_yaw) + std::sin(robot_yaw) * std::sin(segment_yaw));
     
@@ -94,7 +113,6 @@ geometry_msgs::msg::TwistStamped PID::evalControl(const geometry_msgs::msg::Pose
                                                   const nav_msgs::msg::Path & transformed_plan,
                                                   rclcpp::Duration dt_dur)
 {
-
   Segment segment = computeSegment(robot_pose, transformed_plan);
 
   geometry_msgs::msg::TwistStamped result_vel;
@@ -110,22 +128,40 @@ geometry_msgs::msg::TwistStamped PID::evalControl(const geometry_msgs::msg::Pose
     double e_y = -(carrot_robot_pose.pose.position.x - segment.start_segment_.pose.position.x) * std::sin(segment.yaw_segment_) +
                   (carrot_robot_pose.pose.position.y - segment.start_segment_.pose.position.y) * std::cos(segment.yaw_segment_);
 
+#ifdef DEBUG
     std::cout << "e_y " << e_y << std::endl;
+    std::cout << "Delta x = " << carrot_robot_pose.pose.position.x - segment.start_segment_.pose.position.x << std::endl;
+    std::cout << "Delta y = " << carrot_robot_pose.pose.position.y - segment.start_segment_.pose.position.y << std::endl;
+
+    log << "e_y " << e_y << "\n";
+    log << "Delta x = " << carrot_robot_pose.pose.position.x - segment.start_segment_.pose.position.x << "\n";
+    log << "Delta y = " << carrot_robot_pose.pose.position.y - segment.start_segment_.pose.position.y << "\n";
+#endif // DEBUG
 
     double e_theta = wrapToPi(std::abs(robot_yaw) - std::abs(computeYaw(segment.end_segment_)));
+
+#ifdef DEBUG
     std::cout << "e_theta = " << e_theta << std::endl;
+    log << "e_theta = " << e_theta << "\n";
+#endif // DEBUG
 
     double de_y = (e_y - e_y_prev) / dt;
     integral_e_y += e_y * dt;
     double omega = k_p * (-1.0) * e_y + k_d * de_y + k_i * integral_e_y;
 
     double v = v_max_ * std::cos(e_theta);
+
+#ifdef DEBUG
     std::cout << "V = " << v << std::endl;
     std::cout << "Omega = " << omega << std::endl;
     std::cout << "Inverse? " << segment.inverse_move_ << std::endl;
+    log << "V = " << v << "\n";
+    log << "Omega = " << omega << "\n";
+    log << "Inverse? " << segment.inverse_move_ << "\n";
+#endif // DEBUG
 
     result_vel.twist.linear.x = segment.inverse_move_ ? -v : v;
-    result_vel.twist.angular.z = segment.inverse_move_ ? -omega : omega;
+    result_vel.twist.angular.z = omega;
 
     e_y_prev = e_y;
   }
@@ -174,13 +210,25 @@ geometry_msgs::msg::PoseStamped PID::carrotRobotPose(const geometry_msgs::msg::P
 
   geometry_msgs::msg::PoseStamped res = robot_pose;
 
-  carrot_length_ = inverse_move ? -carrot_length_ : carrot_length_;
+#ifdef DEBUG
+  log << "Robot yaw in carrot = " << robot_yaw << "\n";
+  log << "Robot pos x before carrot = " << res.pose.position.x << "\n";
+  log << "Robot pos y before carrot = " << res.pose.position.y << "\n";
+#endif // DEBUG
 
-  double delta_x = carrot_length_ * std::cos(robot_yaw);
-  double delta_y = carrot_length_ * std::sin(robot_yaw);
+  double delta_x = inverse_move ? (-1) * carrot_length_ * std::cos(robot_yaw) : carrot_length_ * std::cos(robot_yaw);
+  double delta_y = inverse_move ? (-1) * carrot_length_ * std::sin(robot_yaw) : carrot_length_ * std::sin(robot_yaw);
 
   res.pose.position.x += delta_x;
   res.pose.position.y += delta_y;
+
+#ifdef DEBUG
+  log << "is Inverse now after carrot? = " << inverse_move << "\n";
+  log << "Delta x in carrot process = " << delta_x << "\n";
+  log << "Delta y in carrot process = " << delta_y << "\n";
+  log << "Robot pos x after carrot = " << res.pose.position.x << "\n";
+  log << "Robot pos y after carrot = " << res.pose.position.y << "\n";
+#endif // DEBUG
 
   return res;
 }

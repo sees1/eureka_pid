@@ -41,6 +41,7 @@ void Controller::activate()
 
 void Controller::deactivate()
 {
+  pid_.deactivate();
   RCLCPP_INFO(logger_, "Deactivated Eureka Controller: %s", name_.c_str());
 }
 

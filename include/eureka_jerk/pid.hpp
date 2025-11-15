@@ -5,6 +5,7 @@
 #include "nav2_core/goal_checker.hpp"
 #include "nav2_mppi_controller/tools/parameters_handler.hpp"
 #include <string>
+#include <fstream>
 
 class Segment {
 public:
@@ -36,6 +37,8 @@ public:
                   const std::string & name,
                   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros,
                   mppi::ParametersHandler * dynamic_parameters_handler);
+
+  void deactivate();
 
   geometry_msgs::msg::TwistStamped evalControl(const geometry_msgs::msg::PoseStamped & robot_pose,
                                                const nav_msgs::msg::Path & transformed_plan,
@@ -73,4 +76,7 @@ private:
   double k_p;
   double k_i;
   double k_d;
+
+  // log
+  std::ofstream log;
 };

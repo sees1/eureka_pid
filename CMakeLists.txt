@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 project(eureka_pid)
 
 find_package(ament_cmake REQUIRED)
-add_definitions(-DDEBUG)
+# add_definitions(-DDEBUG)
 include_directories(
   include
 )
